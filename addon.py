@@ -1,5 +1,5 @@
 #
-#      Copyright (C) 2012 Tommy Winther
+#      Copyright (C) 2013 Tommy Winther
 #      http://tommy.winther.nu
 #
 #  This Program is free software; you can redistribute it and/or modify
@@ -23,6 +23,7 @@ import urllib2
 import re
 import xml.etree.ElementTree
 import datetime
+import time
 
 import buggalo
 
@@ -31,7 +32,7 @@ import xbmcaddon
 import xbmcplugin
 
 DATA_URL = 'http://www.kino.dk/kinotv.rss'
-MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 
 class KinoTVAddon(object):
     def showClips(self):
@@ -53,23 +54,23 @@ class KinoTVAddon(object):
             infoLabels['date'] = date.strftime('%d.%m.%Y')
             infoLabels['year'] = int(date.strftime('%Y'))
 
-            item = xbmcgui.ListItem(title, iconImage = image, thumbnailImage=image)
+            item = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
             item.setInfo('video', infoLabels)
             item.setProperty('Fanart_Image', image)
-            xbmcplugin.addDirectoryItem(HANDLE, clip.findtext('flv'), item)
+            url = clip.findtext('flv')
+            if not url:
+                url = clip.findtext('mp4')
+            xbmcplugin.addDirectoryItem(HANDLE, url, item)
 
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(HANDLE)
 
-    def parseDate(self, dateStr):
-        m = re.search('(\d+) (\w+) (\d+)', dateStr)
-        if m:
-            day = int(m.group(1))
-            month = MONTHS.index(m.group(2)) + 1
-            year = int(m.group(3))
-            return datetime.datetime(year, month, day)
-        return None
-
+    @staticmethod
+    def parseDate(dateStr):
+        try:
+            return datetime.datetime.strptime(dateStr[0:-6], '%a, %d %b %Y %H:%M:%S')
+        except TypeError:
+            return datetime.datetime.fromtimestamp(time.mktime(time.strptime(dateStr[0:-6], '%a, %d %b %Y %H:%M:%S')))
 
 if __name__ == '__main__':
     ADDON = xbmcaddon.Addon()
